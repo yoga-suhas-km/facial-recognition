@@ -28,7 +28,7 @@ def extract_face(filename, required_size=(224, 224)):
 	return face_array
  
 # load the photo and extract the face
-pixels = extract_face('Will_Smith.jpg')
+pixels = extract_face('sharon_stone1.jpg')
 # convert one face into samples
 pixels = pixels.astype('float32')
 samples = expand_dims(pixels, axis=0)
