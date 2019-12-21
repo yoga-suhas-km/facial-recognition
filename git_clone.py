@@ -1,6 +1,6 @@
 import os
 from getpass import getpass
-import urllib
+import urllib.parse
 
 user = input('User name: ')
 password = getpass('Password: ')
