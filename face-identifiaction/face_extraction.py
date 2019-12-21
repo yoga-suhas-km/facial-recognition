@@ -24,7 +24,7 @@ def extract_face(filename, required_size=(224, 224)):
 	return face_array
  
 # load the photo and extract the face
-pixels = extract_face('sharon_stone1.jpg')
+pixels = extract_face('test-database/sharon_stone1.jpg')
 # plot the extracted face
 pyplot.imshow(pixels)
 # show the plot

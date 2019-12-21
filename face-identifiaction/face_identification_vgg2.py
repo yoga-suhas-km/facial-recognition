@@ -49,8 +49,8 @@ def is_match(known_embedding, candidate_embedding, thresh=0.5):
 		print('>face is NOT a Match (%.3f > %.3f)' % (score, thresh))
  
 # define filenames
-filenames = ['sharon_stone1.jpg', 'sharon_stone2.jpg',
-	'sharon_stone3.jpg', 'channing_tatum.jpg']
+filenames = ['test-database/sharon_stone1.jpg', 'test-database/sharon_stone2.jpg',
+	'test-database/sharon_stone3.jpg', 'test-database/channing_tatum.jpg']
 # get embeddings file filenames
 embeddings = get_embeddings(filenames)
 # define sharon stone
