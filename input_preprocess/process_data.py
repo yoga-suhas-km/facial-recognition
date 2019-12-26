@@ -8,14 +8,13 @@ from sklearn.model_selection import train_test_split
 from keras.utils import np_utils
 import random
 import cv2
-from config import image_folder, extracted_folder, image_size_vertical
-from config import image_size_horizontal, person_label, test_size_t, num_classes
+import config
 from face_extraction import extract_and_save_face
 
 def label_img(name):
     word_label = name.split('_')[0]
-    if word_label in person_label:
-        return (person_label[word_label])
+    if word_label in config.person_label:
+        return (config.person_label[word_label])
 
 def get_data_labels(extracted_path, channel):
     images = []
@@ -42,34 +41,49 @@ def get_data_labels(extracted_path, channel):
     labels = np.array(labels)
     return images, labels
 
+def prepare_labels(image_folder):
+    num_classes = 0
+    person_label = {}
+    keys = []
+    path, dirs, file = next(os.walk(image_folder))
+    num_classes = len(dirs)
+    for i, img in enumerate(dirs):
+        keys.append(i)
+    label = zip(dirs, keys)
+    person_label = dict(label)
+
+    return num_classes, person_label
+
 
 def get_dataset(channel):
-    if not os.path.exists(extracted_folder):
-        os.mkdir(extracted_folder)
-    else:
-        shutil.rmtree(extracted_folder, ignore_errors=True)
-        os.mkdir(extracted_folder)
     
-    extract_and_save_face(image_folder, extracted_folder, image_size_vertical, image_size_horizontal)
-
-    images, labels = get_data_labels(extracted_folder, channel)
+    if not os.path.exists(config.extracted_folder):
+        os.mkdir(config.extracted_folder)
+    else:
+        shutil.rmtree(config.extracted_folder, ignore_errors=True)
+        os.mkdir(config.extracted_folder)
+    
+    extract_and_save_face(config.image_folder, config.extracted_folder, config.image_size_vertical, config.image_size_horizontal)
+    
+    config.num_classes, config.person_label = prepare_labels(config.image_folder)
+    images, labels = get_data_labels(config.extracted_folder, channel)
 
     #pyplot.imshow(images[0])
     #pyplot.show()
     
-    x_train, x_test, y_train, y_test = train_test_split(images, labels, test_size = test_size_t, random_state = random.randint(0, 100))
+    x_train, x_test, y_train, y_test = train_test_split(images, labels, test_size = config.test_size_t, random_state = random.randint(0, 100))
     x_train = x_train/255.0
     x_test = x_test/255.0
     
     if channel == 1:
-        x_train = x_train.reshape(x_train.shape[0], image_size_vertical, image_size_horizontal, 1)
-        x_test = x_test.reshape(x_test.shape[0], image_size_vertical, image_size_horizontal, 1)
+        x_train = x_train.reshape(x_train.shape[0], config.image_size_vertical, config.image_size_horizontal, 1)
+        x_test = x_test.reshape(x_test.shape[0], config.image_size_vertical, config.image_size_horizontal, 1)
     else :
-        x_train = x_train.reshape(x_train.shape[0], image_size_vertical, image_size_horizontal, 3)
-        x_test = x_test.reshape(x_test.shape[0], image_size_vertical, image_size_horizontal, 3)    
+        x_train = x_train.reshape(x_train.shape[0], config.image_size_vertical, config.image_size_horizontal, 3)
+        x_test = x_test.reshape(x_test.shape[0], config.image_size_vertical, config.image_size_horizontal, 3)    
     
-    y_train = np_utils.to_categorical(y_train, num_classes)
-    y_test = np_utils.to_categorical(y_test, num_classes)
+    y_train = np_utils.to_categorical(y_train, config.num_classes)
+    y_test = np_utils.to_categorical(y_test, config.num_classes)
     
     if channel == 1:
         pickle_out = open("x_train_grey.pickle","wb")
@@ -105,7 +119,6 @@ def get_dataset(channel):
         pickle_out.close()
     
     return x_train, x_test, y_train, y_test
-    
     
 
  # used to test

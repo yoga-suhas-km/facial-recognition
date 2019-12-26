@@ -39,6 +39,7 @@ def extract_and_save_face(path_to_read_imgs, path_to_save_extracted_face, image_
         if os.path.isdir(abs_path):  # dir
             extract_and_save_face(abs_path, path_to_save_extracted_face, image_size_vertical, image_size_horizontal)
         else:                        # file
+            #print("\r"+file_or_dir+"\n") # use this to debug if extraction fails
             bar.next()
             if file_or_dir.endswith('.jpg'):
                 platform = sys.platform

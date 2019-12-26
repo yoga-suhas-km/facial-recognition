@@ -1,6 +1,5 @@
 import os
 
-
 number_of_images = []
 
 def count_images(count_images_in_folder):
