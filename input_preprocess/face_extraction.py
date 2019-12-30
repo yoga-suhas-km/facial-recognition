@@ -7,8 +7,8 @@ from mtcnn.mtcnn import MTCNN # face extraction model
 from image_count import count_images
 from config import image_folder, extracted_folder, image_size_vertical, image_size_horizontal
 
-
-bar = Bar('\r SAVING EXTRACTED FACES: ', max = count_images(str(image_folder)) )
+def set_process_bar():
+    bar = Bar('\r SAVING EXTRACTED FACES: ', max = count_images(str(image_folder)) )
 
 platform = []
 
@@ -19,21 +19,27 @@ def extract_face(path_to_read_imgs, path_to_save_extracted_face, img_size_vertic
     pixels = pyplot.imread(path_to_read_imgs)
     # create the detector, using default weights
     detector = MTCNN()
+    #print(detector)
     # detect faces in the image
     results = detector.detect_faces(pixels)
     # extract the bounding box from the first face
+    #print(results)
     x1, y1, width, height = results[0]['box']
     x2, y2 = x1 + width, y1 + height
     # extract the face
     face = pixels[y1:y2, x1:x2]
+    #print(face)
     # resize pixels to the model size
     image = Image.fromarray(face)
+    #print(image)
     image = image.resize(required_size)
+    #print(image)
     image.save(path_to_save_extracted_face)
 
 
 
 def extract_and_save_face(path_to_read_imgs, path_to_save_extracted_face, image_size_vertical, image_size_horizontal):
+    set_process_bar()
     for file_or_dir in os.listdir(path_to_read_imgs):
         abs_path = os.path.abspath(os.path.join(path_to_read_imgs, file_or_dir))
         if os.path.isdir(abs_path):  # dir
