@@ -7,13 +7,16 @@ extracted_folder = './extracted_images'
 # to store model files
 models = './models'
 
+# to stroe graphs
+graphs = './graphs'
+
 # vertical and horizontal size to be used
 
 image_size_vertical = 100
 image_size_horizontal = 100
 
 # number of epochs to train a model
-epoch = 5
+epoch = 100
 
 # batch size used to train a model
 batch_size = 64
@@ -29,13 +32,13 @@ validation_ratio = 0.2
 x_shape = ()
 
 # type of channels
-GREY_SCALE = 1
+GREY = 1
 RGB = 3
 
 # this config represents the image fusion
 # in vertical or horizontal way
-vertical = "V"
-horizontal = "H"
+vertical = "VERTICAL"
+horizontal = "HORIZONTAL"
 
 # number of classes, this will be updated
 # in code

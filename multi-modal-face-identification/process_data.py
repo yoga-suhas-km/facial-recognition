@@ -137,17 +137,17 @@ def process(fusion,channel):
     print(y[6])
     """
     
-    if channel == config.GREY_SCALE:
-        x = np.array(x).reshape(-1, config.image_size_vertical, config.image_size_horizontal, config.GREY_SCALE)
+    if channel == config.GREY:
+        x = np.array(x).reshape(-1, config.image_size_vertical, config.image_size_horizontal, config.GREY)
     else :
         x = np.array(x).reshape(-1, config.image_size_vertical, config.image_size_horizontal, config.RGB)
 
-    if channel == config.GREY_SCALE:
-        pickle_out = open("x_grey_{}_{}_{}_{}.pickle".format(fusion,config.image_size_vertical, config.image_size_horizontal, config.GREY_SCALE),"wb")
+    if channel == config.GREY:
+        pickle_out = open("x_grey_{}_{}_{}_{}.pickle".format(fusion,config.image_size_vertical, config.image_size_horizontal, config.GREY),"wb")
         pickle.dump(x, pickle_out)
         pickle_out.close()
         
-        pickle_out = open("y_grey_{}_{}_{}_{}.pickle".format(fusion,config.image_size_vertical, config.image_size_horizontal, config.GREY_SCALE),"wb")
+        pickle_out = open("y_grey_{}_{}_{}_{}.pickle".format(fusion,config.image_size_vertical, config.image_size_horizontal, config.GREY),"wb")
         pickle.dump(y, pickle_out)
         pickle_out.close()
     else:
@@ -183,14 +183,14 @@ def get_dataset(fusion,channel):
         pickle.dump(config.person_label, pickle_out)
         pickle_out.close()
     
-    if channel == config.GREY_SCALE :
-        config.x_shape = (-1, config.image_size_vertical, config.image_size_horizontal, config.GREY_SCALE)
-        if "x_grey_{}_{}_{}_{}.pickle".format(fusion,config.image_size_vertical, config.image_size_horizontal, config.GREY_SCALE) and "y_grey_{}_{}_{}_{}.pickle".format(fusion,config.image_size_vertical, config.image_size_horizontal, config.GREY_SCALE) in file:
-            pickle_in = open("x_grey_{}_{}_{}_{}.pickle".format(fusion,config.image_size_vertical, config.image_size_horizontal, config.GREY_SCALE),"rb")
+    if channel == config.GREY :
+        config.x_shape = (-1, config.image_size_vertical, config.image_size_horizontal, config.GREY)
+        if "x_grey_{}_{}_{}_{}.pickle".format(fusion,config.image_size_vertical, config.image_size_horizontal, config.GREY) and "y_grey_{}_{}_{}_{}.pickle".format(fusion,config.image_size_vertical, config.image_size_horizontal, config.GREY) in file:
+            pickle_in = open("x_grey_{}_{}_{}_{}.pickle".format(fusion,config.image_size_vertical, config.image_size_horizontal, config.GREY),"rb")
             x = pickle.load(pickle_in)
 
             pickle_in = open("y_grey_{}_{}_{}_{}.pickle".format(fusion,config.image_size_vertical, 
-                            config.image_size_horizontal, config.GREY_SCALE),"rb")
+                            config.image_size_horizontal, config.GREY),"rb")
             y = pickle.load(pickle_in)
             return x, y
         else :
