@@ -11,16 +11,16 @@ import config
 #from config import num_classes
 from matplotlib import pyplot # image operation
 import sys
-from process_data import get_dataset
+from process_data import get_dataset, train_test_validation_set_split
 import numpy as np
 from keras.utils import np_utils
 from sklearn.model_selection import train_test_split
 
 dense_layers = [1,2]
-layer_sizes = [256]
+layer_sizes = [32, 64, 128, 256]
 conv_layers = [2]
 
-def model(x_train, x_test, y_train, y_test, channel):
+def model(x_train, x_test, x_valid, y_train, y_test, y_valid, channel):
     platform = sys.platform
     
     print(x_train.shape)
@@ -64,29 +64,42 @@ def model(x_train, x_test, y_train, y_test, channel):
                               metrics=['accuracy'],
                               )
                 model.fit(x_train, y_train, verbose=1, 
-                            epochs=config.epoch, batch_size=config.batch_size, #config.batch_size, 
-                             #validation_split=config.test_size_t,
+                            epochs=config.epoch, batch_size=config.batch_size,
                              validation_data=(x_test, y_test),
                             callbacks=[tensorboard])
                 
-                scores = model.evaluate(x_test, y_test, verbose=0)
+                scores = model.evaluate(x_valid, y_valid, verbose=0)
                 print("%s: %.2f%%" % (model.metrics_names[1], scores[1]*100))
-                #model.save("{}.h5".format(NAME))
+                if not os.path.exists(config.models):
+                    os.mkdir(config.models)
                 model.save(os.path.join(config.models, "{}.h5".format(NAME)))
 
 
 def main():
-    x, y = get_dataset(config.GREY_SCALE)
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = config.test_size_t, random_state = random.randint(0, 100))
+
+    x, y = get_dataset(config.horizontal, config.GREY_SCALE)
+    #x, y = get_dataset(config.horizontal, config.RGB)
+    #x, y = get_dataset(config.vertical, config.GREY_SCALE)
+    #x, y = get_dataset(config.vertical, config.RGB)
     
+    x_train, x_test, x_valid, y_train, y_test, y_valid = train_test_validation_set_split(x,y, config.train_ratio, config.test_ratio, config.validation_ratio)
     print(x_train.shape)
     print(x_test.shape)
     print(config.num_classes)
     x_train = x_train/255.0
     x_test = x_test/255.0
+    x_valid = x_valid/255.0
+    
+    print(y_train)
+    print(y_test)
+    print(y_valid)
+    print(len(y_train))
+    print(len(y_test))
+    print(len(y_valid))
     
     y_train = np_utils.to_categorical(y_train, config.num_classes)
     y_test = np_utils.to_categorical(y_test, config.num_classes)
+    y_valid = np_utils.to_categorical(y_valid, config.num_classes)
     print(y_train.shape)
     print(y_test.shape)
     #y = np.array(y)
@@ -95,7 +108,8 @@ def main():
     #print(type(x))
     #print(type(y))
 
-    model(x_train, x_test, y_train, y_test,1)
+    #model(x_train, x_test, x_valid, y_train, y_test, y_valid, config.GREY_SCALE)
+    #model(x_train, x_test, x_valid, y_train, y_test, y_valid, config.RGB)
 
 
 if __name__ == "__main__":

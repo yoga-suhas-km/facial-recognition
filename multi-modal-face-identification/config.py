@@ -1,30 +1,46 @@
+# raw images shoud be saved in "images" folder
 image_folder = './images'
-extracted_folder = './extracted_images'
-test_image_folder = './test_images'
-test_extracted_folder= './test_extracted_images'
 
+# final preprocessed images will be stored
+extracted_folder = './extracted_images'
+
+# to store model files
 models = './models'
-#models = '.'
-#image_size_vertical = 224
-#image_size_horizontal = 224
+
+# vertical and horizontal size to be used
+
 image_size_vertical = 100
 image_size_horizontal = 100
-epoch = 15
-batch_size = 64
-test_size_t = 0.3
 
+# number of epochs to train a model
+epoch = 5
+
+# batch size used to train a model
+batch_size = 64
+
+# data set split ratio
+train_ratio = 0.6
+test_ratio = 0.2
+validation_ratio = 0.2
+
+# input data shape, this will be updated
+# accordingly in the code for GREY_SCALE
+# or RGB images if used.
 x_shape = ()
 
+# type of channels
 GREY_SCALE = 1
 RGB = 3
 
-"""
-num_classes = 4
-person_label={  'AM' : 0,   
-                'DT' : 1,
-                'SRK' : 2,
-                'WS' : 3
-                }
-"""
+# this config represents the image fusion
+# in vertical or horizontal way
+vertical = "V"
+horizontal = "H"
+
+# number of classes, this will be updated
+# in code
 num_classes = 0
+
+# labeling of classes, this will be updated
+# in code
 person_label = {}

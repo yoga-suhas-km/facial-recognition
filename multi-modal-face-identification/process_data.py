@@ -10,7 +10,9 @@ import random
 import cv2
 import config
 from face_extraction import extract_and_save_face
-from image_count import count_images
+import PIL
+from PIL import Image
+from tqdm import tqdm
 
 def label_img(name):
     word_label = name.split('_')[0]
@@ -54,190 +56,165 @@ def prepare_labels(image_folder):
         keys.append(i)
     label = zip(dirs, keys)
     person_label = dict(label)
-
     return num_classes, person_label
 
-def process(channel):
+def process(fusion,channel):
     x = []
     y = []
-    number_of_images_in_extracted_folder = 0
     
-    number_of_images_in_images = count_images(config.image_folder)
+    required_size = (config.image_size_vertical,config.image_size_horizontal)
     
-    if os.path.exists(config.extracted_folder):
-        number_of_images_in_extracted_folder = count_images(config.extracted_folder)
+    if not os.path.exists(config.extracted_folder):
+        os.mkdir(config.extracted_folder)
+    else:
+        shutil.rmtree(config.extracted_folder, ignore_errors=True)
+        os.mkdir(config.extracted_folder)
     
-    if number_of_images_in_images != number_of_images_in_extracted_folder:
-        if not os.path.exists(config.extracted_folder):
-            os.mkdir(config.extracted_folder)
-        else:
-            shutil.rmtree(config.extracted_folder, ignore_errors=True)
-            os.mkdir(config.extracted_folder)
+    if os.path.exists(config.image_folder):
+        path, dirs, file = next(os.walk(config.image_folder))
         
-        extract_and_save_face(config.image_folder, config.extracted_folder, config.image_size_vertical, config.image_size_horizontal)
-   
+        for dir in tqdm(dirs):
+            path_t, dirs_t, file_t = next(os.walk(os.path.join(config.image_folder,dir)))
+            for dir_t in dirs_t:
+                if dir_t.split('_')[1] == "FACE":
+                    if not os.path.exists(os.path.join(config.image_folder,dir,"FACE_EXTRACTED")):
+                        os.mkdir(os.path.join(config.image_folder,dir,"FACE_EXTRACTED"))
+                    else:
+                        shutil.rmtree(os.path.join(config.image_folder,dir,"FACE_EXTRACTED"), ignore_errors=True)
+                        os.mkdir(os.path.join(config.image_folder,dir,"FACE_EXTRACTED"))
+                    extract_and_save_face(os.path.join(config.image_folder,dir,dir_t), os.path.join(config.image_folder,dir,"FACE_EXTRACTED"), config.image_size_vertical, config.image_size_horizontal)
+        
+        for dir in tqdm(dirs):
+            face = []
+            ear = []
+            perioccular = []
+            fuse = []
+            i = 0
+            img_name_face = []
+            
+            path_t, dirs_t, file_t = next(os.walk(os.path.join(config.image_folder,dir)))
+            for dir_t in dirs_t:
+                path_i, dirs_i, file_i = next(os.walk(os.path.join(config.image_folder,dir,dir_t)))
+                if dir_t.split('_')[1] == "PERI":
+                    perioccular = [ PIL.Image.open(os.path.join(config.image_folder,dir,dir_t,i)) for i in file_i ]
+                elif dir_t.split('_')[1] == "EAR":
+                    ear = [ PIL.Image.open(os.path.join(config.image_folder,dir,dir_t,i)) for i in file_i ]
+                elif dir_t.split('_')[1] == "EXTRACTED":
+                    img_name_face = file_i
+                    face = [ PIL.Image.open(os.path.join(config.image_folder,dir,dir_t,i)) for i in file_i ]                    
+
+            
+            for f in face:
+                for e in ear:
+                    for p in perioccular:
+                        fuse.append(f)
+                        fuse.append(e)
+                        fuse.append(p)
+                        min_shape = sorted( [(np.sum(i.size), i.size ) for i in fuse])[0][1]
+                        if fusion == config.horizontal:
+                            imgs_comb = np.hstack( (np.asarray( i.resize(min_shape) ) for i in fuse ) )
+                        elif fusion == config.vertical:
+                            imgs_comb = np.vstack( (np.asarray( i.resize(min_shape) ) for i in fuse ) )
+
+                        imgs_comb = Image.fromarray( imgs_comb)
+                        imgs_comb = imgs_comb.resize(required_size)
+                        imgs_comb.save(config.extracted_folder+'\\'+img_name_face[0].split('_')[0]+"_"+str(i)+".jpg")
+                        i += 1    
+                        fuse.clear()
+    
     images, labels, training_data = get_data_labels(config.extracted_folder, channel)
-       
+    
     random.shuffle(training_data)
         
-    for images, labels in training_data:
-        x.append(images)
-        y.append(labels)
+    for image, label in tqdm(training_data):
+        x.append(image)
+        y.append(label)
 
-        
-    #pyplot.imshow(x[6])
-    #pyplot.show()        
-        
-        
+    """
+    pyplot.imshow(x[6])
+    pyplot.show()        
+    
+    print(y[6])
+    """
+    
     if channel == config.GREY_SCALE:
         x = np.array(x).reshape(-1, config.image_size_vertical, config.image_size_horizontal, config.GREY_SCALE)
     else :
         x = np.array(x).reshape(-1, config.image_size_vertical, config.image_size_horizontal, config.RGB)
 
     if channel == config.GREY_SCALE:
-        pickle_out = open("x_grey_{}_{}_{}.pickle".format(config.image_size_vertical, config.image_size_horizontal, config.GREY_SCALE),"wb")
+        pickle_out = open("x_grey_{}_{}_{}_{}.pickle".format(fusion,config.image_size_vertical, config.image_size_horizontal, config.GREY_SCALE),"wb")
         pickle.dump(x, pickle_out)
         pickle_out.close()
         
-        pickle_out = open("y_grey_{}_{}_{}.pickle".format(config.image_size_vertical, config.image_size_horizontal, config.GREY_SCALE),"wb")
+        pickle_out = open("y_grey_{}_{}_{}_{}.pickle".format(fusion,config.image_size_vertical, config.image_size_horizontal, config.GREY_SCALE),"wb")
         pickle.dump(y, pickle_out)
         pickle_out.close()
     else:
-        pickle_out = open("x_rgb_{}_{}_{}.pickle".format(config.image_size_vertical, config.image_size_horizontal, config.RGB),"wb")
+        pickle_out = open("x_rgb_{}_{}_{}_{}.pickle".format(fusion,config.image_size_vertical, config.image_size_horizontal, config.RGB),"wb")
         pickle.dump(x, pickle_out)
         pickle_out.close()
      
-        pickle_out = open("y_rgb_{}_{}_{}.pickle".format(config.image_size_vertical, config.image_size_horizontal, config.RGB),"wb")
+        pickle_out = open("y_rgb_{}_{}_{}_{}.pickle".format(fusion,config.image_size_vertical, config.image_size_horizontal, config.RGB),"wb")
         pickle.dump(y, pickle_out)
         pickle_out.close()
         
     return x, y
-       
-def process_test_data(channel):
-    x = []
-    y = []
-    number_of_images_in_extracted_folder = 0
     
-    number_of_images_in_images = count_images(config.test_image_folder)
-    
-    if os.path.exists(config.test_extracted_folder):
-        number_of_images_in_extracted_folder = count_images(config.test_extracted_folder)
-    
-    if number_of_images_in_images != number_of_images_in_extracted_folder:
-        if not os.path.exists(config.test_extracted_folder):
-            os.mkdir(config.test_extracted_folder)
-        else:
-            shutil.rmtree(config.test_extracted_folder, ignore_errors=True)
-            os.mkdir(config.test_extracted_folder)
-        
-        extract_and_save_face(config.test_image_folder, config.test_extracted_folder, config.image_size_vertical, config.image_size_horizontal)
-   
-    images, labels, test_data = get_data_labels(config.test_extracted_folder, channel)
 
-    random.shuffle(test_data)
-        
-    for images, labels in test_data:
-        x.append(images)
-        y.append(labels)
-        
-    if channel == config.GREY_SCALE:
-        x = np.array(x).reshape(-1, config.image_size_vertical, config.image_size_horizontal, config.GREY_SCALE)
-    else :
-        x = np.array(x).reshape(-1, config.image_size_vertical, config.image_size_horizontal, config.RGB)
-
-    if channel == config.GREY_SCALE:
-        pickle_out = open("x_test_grey_{}_{}_{}.pickle".format(config.image_size_vertical,
-                                    config.image_size_horizontal, config.GREY_SCALE),"wb")
-        pickle.dump(x, pickle_out)
-        pickle_out.close()
-        
-        pickle_out = open("y_test_grey_{}_{}_{}.pickle".format(config.image_size_vertical, 
-                                    config.image_size_horizontal, config.GREY_SCALE),"wb")
-        pickle.dump(y, pickle_out)
-        pickle_out.close()
-    else:
-        pickle_out = open("x_test_rgb_{}_{}_{}.pickle".format(config.image_size_vertical, config.image_size_horizontal, config.RGB),"wb")
-        pickle.dump(x, pickle_out)
-        pickle_out.close()
-     
-        pickle_out = open("y_test_rgb_{}_{}_{}.pickle".format(config.image_size_vertical, config.image_size_horizontal, config.RGB),"wb")
-        pickle.dump(y, pickle_out)
-        pickle_out.close()
-        
-    return x, y
-
-def get_dataset(channel):
+def get_dataset(fusion,channel):
     x = []
     y = []
     
     path, dirs, file = next(os.walk("."))
+    if "num_classes.pickle" and "person_label.pickle" in file:
+        pickle_in = open("num_classes.pickle","rb")
+        config.num_classes = pickle.load(pickle_in)
 
-    config.num_classes, config.person_label = prepare_labels(config.image_folder)
-    print(config.num_classes)
+        pickle_in = open("person_label.pickle","rb")
+        config.person_label = pickle.load(pickle_in)        
+    else:
+        config.num_classes, config.person_label = prepare_labels(config.image_folder)
+        pickle_out = open("num_classes.pickle","wb")
+        pickle.dump(config.num_classes, pickle_out)
+        pickle_out.close()        
+        
+        pickle_out = open("person_label.pickle","wb")
+        pickle.dump(config.person_label, pickle_out)
+        pickle_out.close()
     
     if channel == config.GREY_SCALE :
         config.x_shape = (-1, config.image_size_vertical, config.image_size_horizontal, config.GREY_SCALE)
-        if "x_grey_{}_{}_{}.pickle".format(config.image_size_vertical, config.image_size_horizontal, config.GREY_SCALE) and "y_grey_{}_{}_{}.pickle".format(config.image_size_vertical, config.image_size_horizontal, config.GREY_SCALE) in file:
-            pickle_in = open("x_grey_{}_{}_{}.pickle".format(config.image_size_vertical, config.image_size_horizontal, config.GREY_SCALE),"rb")
+        if "x_grey_{}_{}_{}_{}.pickle".format(fusion,config.image_size_vertical, config.image_size_horizontal, config.GREY_SCALE) and "y_grey_{}_{}_{}_{}.pickle".format(fusion,config.image_size_vertical, config.image_size_horizontal, config.GREY_SCALE) in file:
+            pickle_in = open("x_grey_{}_{}_{}_{}.pickle".format(fusion,config.image_size_vertical, config.image_size_horizontal, config.GREY_SCALE),"rb")
             x = pickle.load(pickle_in)
 
-            pickle_in = open("y_grey_{}_{}_{}.pickle".format(config.image_size_vertical, 
+            pickle_in = open("y_grey_{}_{}_{}_{}.pickle".format(fusion,config.image_size_vertical, 
                             config.image_size_horizontal, config.GREY_SCALE),"rb")
             y = pickle.load(pickle_in)
             return x, y
         else :
-            x, y = process(channel)
+            x, y = process(fusion,channel)
             return x, y
     else:
         config.x_shape = (-1, config.image_size_vertical, config.image_size_horizontal, config.RGB)
-        if "x_rgb_{}_{}_{}.pickle".format(config.image_size_vertical, config.image_size_horizontal, config.RGB) and "y_rgb_{}_{}_{}.pickle".format(config.image_size_vertical, config.image_size_horizontal, config.RGB) in file:
-            pickle_in = open("x_rgb_{}_{}_{}.pickle".format(config.image_size_vertical, 
+        if "x_rgb_{}_{}_{}_{}.pickle".format(fusion,config.image_size_vertical, config.image_size_horizontal, config.RGB) and "y_rgb_{}_{}_{}_{}.pickle".format(fusion,config.image_size_vertical, config.image_size_horizontal, config.RGB) in file:
+            pickle_in = open("x_rgb_{}_{}_{}_{}.pickle".format(fusion,config.image_size_vertical, 
                                 config.image_size_horizontal, config.RGB),"rb")
             x = pickle.load(pickle_in)
 
-            pickle_in = open("y_rgb_{}_{}_{}.pickle".format(config.image_size_vertical, 
+            pickle_in = open("y_rgb_{}_{}_{}_{}.pickle".format(fusion,config.image_size_vertical, 
                                 config.image_size_horizontal, config.RGB),"rb")
             y = pickle.load(pickle_in)
             return x, y
         else:
-            x, y = process(channel)
+            x, y = process(fusion,channel)
             return x,y
 
 
-def get_test_dataset(channel):
-    x = []
-    y = []
-    
-    path, dirs, file = next(os.walk("."))
 
-    config.num_classes, config.person_label = prepare_labels(config.test_image_folder)
-    print(config.num_classes)
-
-    if channel == 1 :
-        config.x_shape = (-1, config.image_size_vertical, config.image_size_horizontal, 1)
-        if "x_test_grey_{}_{}_{}.pickle".format(config.image_size_vertical, config.image_size_horizontal, config.GREY_SCALE) and "y_test_grey_{}_{}_{}.pickle".format(config.image_size_vertical,  config.image_size_horizontal, config.GREY_SCALE) in file:
-            pickle_in = open("x_test_grey_{}_{}_{}.pickle".format(config.image_size_vertical,
-                                    config.image_size_horizontal, config.GREY_SCALE),"rb")
-            x = pickle.load(pickle_in)
-
-            pickle_in = open("y_test_grey_{}_{}_{}.pickle".format(config.image_size_vertical, 
-                                        config.image_size_horizontal, config.GREY_SCALE),"rb")
-            y = pickle.load(pickle_in)
-            return x, y
-        else :
-            x, y = process_test_data(channel)
-            return x, y
-    else:
-        config.x_shape = (-1, config.image_size_vertical, config.image_size_horizontal, 3)
-        if "x_test_rgb_{}_{}_{}.pickle".format(config.image_size_vertical, config.image_size_horizontal, config.RGB) and "y_test_rgb_{}_{}_{}.pickle".format(config.image_size_vertical,  config.image_size_horizontal, config.RGB) in file:
-            pickle_in = open("x_test_rgb_{}_{}_{}.pickle".format(config.image_size_vertical, 
-                                config.image_size_horizontal, config.RGB),"rb")
-            x = pickle.load(pickle_in)
-
-            pickle_in = open("y_test_rgb_{}_{}_{}.pickle".format(config.image_size_vertical, 
-                                config.image_size_horizontal, config.RGB),"rb")
-            y = pickle.load(pickle_in)
-            return x, y
-        else:
-            x, y = process_test_data(channel)
-            return x,y
+def train_test_validation_set_split(x, y, train_ratio, test_ratio, validation_ratio):
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = (1 - train_ratio), random_state = random.randint(0, 100))
+    x_val, x_test, y_val, y_test = train_test_split(x_test, y_test, test_size=test_ratio/(test_ratio + validation_ratio), random_state = random.randint(0, 100)) 
+    return x_train, x_test, x_val, y_train, y_test, y_val  
+  
