@@ -57,6 +57,7 @@ def extract_and_save_face(path_to_read_imgs, path_to_save_extracted_face, image_
     for file in file_t: 
         if file.endswith('.jpg') or file.endswith('.JPG'):
             abs_path = os.path.abspath(os.path.join(path_to_read_imgs, file))
+            print(abs_path)
             platform = sys.platform
             if "W" in platform:
                 extract_face(abs_path, path_to_save_extracted_face+'\\'+file, image_size_vertical, image_size_horizontal)

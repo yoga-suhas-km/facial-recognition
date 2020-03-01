@@ -37,10 +37,12 @@ from process_data import get_dataset, train_test_validation_set_split
 import numpy as np
 from keras.utils import np_utils
 from tensorflow.keras.models import load_model
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report
+from sklearn.preprocessing import MinMaxScaler
 
 
-dense_layers = [1,2]
-layer_sizes = [32, 64, 128, 256]
+dense_layers = [1]
+layer_sizes = [32]
 conv_layers = [2]
 
 def model(x_train, x_test, x_valid, y_train, y_test, y_valid, channel):
@@ -78,11 +80,13 @@ def model(x_train, x_test, x_valid, y_train, y_test, y_valid, channel):
                 else:
                     tensorboard = TensorBoard(log_dir="logs/{}".format(NAME))
                     
-                model.compile(loss='categorical_crossentropy',
-                              optimizer='adam',
-                              metrics=['accuracy'],
-                              )
-                              
+                #model.compile(loss='categorical_crossentropy',
+                #              optimizer='adam',
+                #              metrics=['accuracy'],
+                #              )
+                model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+                
+                print(model.summary())                
                 es = EarlyStopping(monitor='val_loss', mode='min', verbose=1)
                 
                 mc = ModelCheckpoint(os.path.join(config.models, "{}.h5".format(NAME)), monitor='val_loss', mode='min', verbose=1, save_best_only=True)
@@ -105,12 +109,29 @@ def model(x_train, x_test, x_valid, y_train, y_test, y_valid, channel):
                 y_pred_t = saved_model.predict(x_test, batch_size=config.batch_size, verbose=0)
                 y_pred_bool = np.argmax(y_pred_t, axis=1)
                 y_pred = saved_model.predict_classes(x_test)
+                # accuracy: (tp + tn) / (p + n)
+                accuracy = accuracy_score(y_test, y_pred)
+                print('Accuracy: %f' % accuracy)
+                # precision tp / (tp + fp)
+                precision = precision_score(y_test, y_pred, average='weighted',labels=np.unique(y_pred))
+                print('Precision: %f' % precision)
+                # recall: tp / (tp + fn)
+                recall = recall_score(y_test, y_pred,average='weighted')
+                print('Recall: %f' % recall)
+                # f1: 2 tp / (2 tp + fp + fn)
+                f1 = f1_score(y_test, y_pred, average='weighted',labels=np.unique(y_pred))
+                print('F1 score: %f' % f1)
+                
+                print(classification_report(y_test, y_pred_bool,labels=np.unique(y_pred_bool)))
+
                 
                 print("PREDICTED-DATA")
                 print(y_pred)
                 
-                pyplot.plot(history.history['loss'], label='train')
-                pyplot.plot(history.history['val_loss'], label='test')
+                pyplot.plot(history.history['loss'], label='train-loss')
+                pyplot.plot(history.history['val_loss'], label='test-loss')                
+                pyplot.plot(history.history['accuracy'], label='train-acc')
+                pyplot.plot(history.history['val_accuracy'], label='test-acc')
                 pyplot.legend()
                 #pyplot.show()
                 pyplot.savefig(os.path.join(config.graphs, "{}.png".format(NAME)))
@@ -149,7 +170,9 @@ def main(argv):
 
             
     x, y = get_dataset(fusion_pattren, channel)
-
+    
+    y = np.array(y)
+    
     x_train, x_test, x_valid, y_train, y_test, y_valid = train_test_validation_set_split(x,y, config.train_ratio, config.test_ratio, config.validation_ratio)
 
     print("NUMBER OF PERSONS")
@@ -158,12 +181,13 @@ def main(argv):
     x_test = x_test/255.0
     x_valid = x_valid/255.0
     
+    
     print("TEST_DATA")
     print(y_test)
     
-    y_train = np_utils.to_categorical(y_train, config.num_classes)
-    y_test = np_utils.to_categorical(y_test, config.num_classes)
-    y_valid = np_utils.to_categorical(y_valid, config.num_classes)
+    #y_train = np_utils.to_categorical(y_train, config.num_classes)
+    #y_test = np_utils.to_categorical(y_test, config.num_classes)
+    #y_valid = np_utils.to_categorical(y_valid, config.num_classes)
     
     if not os.path.exists(config.models):
         os.mkdir(config.models)    
