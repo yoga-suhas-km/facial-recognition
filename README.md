@@ -27,6 +27,12 @@
 > $ *pip install package-name*
 > - eg: if "mtcnn" package need to be installed - $ *pip install mtcnn*
 
+
+Please find the paper
+
+> https://www.researchgate.net/publication/361245139_Multimodal_Biometric_Person_Authentication_using_Face_Ear_and_Periocular_region_based_on_Convolution_Neural_Networks
+
+
 Please cite the following paper
 
 > @article{lohith2021multimodal,
